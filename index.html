@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Le Musée de la Réussite - Sarah Millon</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Poppins:wght@300;400&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #111111;
+            --text-light: #e5e5e5;
+            --text-muted: #a3a3a3;
+            --accent-gold: #d4af37;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            margin: 0;
+            overflow: hidden;
+            background-image: url('data:image/svg+xml,%3Csvg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%232e2e2e" fill-opacity="0.2"%3E%3Cpath d="M50 50H30V30h20v20zM10 10H0v10h10V10z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
+        }
+
+        .scene {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            transition: opacity 1.5s ease-in-out, transform 1.5s ease-in-out;
+            will-change: transform, opacity;
+        }
+        
+        #museum-hall {
+            background: url('Images/hall.png') no-repeat center center/cover;
+            opacity: 1;
+            z-index: 20;
+            cursor: pointer;
+        }
+        #museum-hall.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(2);
+        }
+        
+        #brevet-gallery {
+            opacity: 0;
+            z-index: 10;
+            transform: scale(0.8);
+            overflow-y: auto;
+            padding: 3rem;
+        }
+        #brevet-gallery.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .gallery-container {
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .gallery-header {
+            margin-bottom: 4rem;
+        }
+        .gallery-header h1 {
+            font-family: 'Cinzel', serif;
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            margin: 0;
+            color: var(--accent-gold);
+            text-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+        }
+        .gallery-header p {
+            font-size: clamp(1rem, 2vw, 1.25rem);
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+        
+        .gallery-wall {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 4rem;
+            position: relative;
+        }
+        
+        .artwork {
+            position: relative;
+            text-align: center;
+            transition: transform 0.4s ease, opacity 0.4s ease, filter 0.4s ease;
+        }
+        
+        /* --- NOUVEL EFFET DE FOCUS --- */
+        .gallery-wall:hover > .artwork {
+            opacity: 0.5;
+            filter: grayscale(80%) blur(2px);
+            transform: scale(0.98);
+        }
+        .gallery-wall > .artwork:hover {
+            opacity: 1;
+            filter: none;
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .frame {
+            padding: 15px;
+            background: linear-gradient(145deg, #4a4a4a, #2a2a2a);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,0,0,0.8);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: box-shadow 0.4s ease;
+        }
+        .artwork:hover .frame {
+            box-shadow: 0 25px 50px rgba(0,0,0,0.7), 0 0 30px var(--accent-gold), inset 0 0 15px rgba(0,0,0,0.8);
+        }
+
+        .artwork img { width: 100%; display: block; }
+
+        .plaque {
+            margin-top: 1rem;
+            background-color: var(--accent-gold);
+            color: #332a14;
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+        }
+        .plaque .score-on-20 { font-size: 1.25rem; }
+        .plaque .subject-name { font-size: 0.8rem; text-transform: uppercase; }
+
+    </style>
+</head>
+<body>
+
+    <div class="scene" id="museum-hall"></div>
+
+    <div class="scene" id="brevet-gallery">
+        <div class="gallery-container">
+            <header class="gallery-header">
+                <h1>753.5 / 800</h1>
+                <p>Félicitations du Jury</p>
+            </header>
+            <div class="gallery-wall" id="gallery-wall">
+                <!-- Les tableaux seront injectés ici -->
+            </div>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const hall = document.getElementById('museum-hall');
+    const gallery = document.getElementById('brevet-gallery');
+    const galleryWall = document.getElementById('gallery-wall');
+    
+    const subjectsData = [
+        { name: 'Français', score: 65.0, max: 100, image: 'Images/francais.png' },
+        { name: 'Mathématiques', score: 98.0, max: 100, image: 'Images/maths.png' },
+        { name: 'Histoire-Géo & EMC', score: 30.5, max: 50, image: 'Images/hist-geo.png' },
+        { name: 'Sciences', score: 40.0, max: 50, image: 'Images/sciences.png' },
+        { name: 'Soutenance Orale', score: 100.0, max: 100, image: 'Images/oral.png' },
+        { name: 'Socle Commun', score: 400.0, max: 400, image: 'Images/socle.png' }
+    ];
+
+    hall.addEventListener('click', () => {
+        hall.classList.add('hidden');
+        gallery.classList.add('visible');
+    });
+
+    subjectsData.forEach(subject => {
+        const scoreOn20 = (subject.score / subject.max) * 20;
+        const artworkDiv = document.createElement('div');
+        artworkDiv.className = 'artwork';
+        artworkDiv.innerHTML = `
+            <div class="frame">
+                <img src="${subject.image}" alt="Tableau représentant ${subject.name}">
+            </div>
+            <div class="plaque">
+                <div class="score-on-20">${scoreOn20.toFixed(1).replace('.0','')} / 20</div>
+                <div class="subject-name">${subject.name}</div>
+            </div>
+        `;
+        galleryWall.appendChild(artworkDiv);
+
+        artworkDiv.addEventListener('mouseenter', (e) => {
+            if (gallery.classList.contains('visible')) {
+                launchConfetti(e, scoreOn20);
+            }
+        });
+    });
+
+    function launchConfetti(event, score) {
+        let particleCount = 20, spread = 40;
+        if (score >= 20) { particleCount = 200; spread = 120; }
+        else if (score >= 18) { particleCount = 150; spread = 90; }
+        else if (score >= 15) { particleCount = 70; spread = 60; }
+        
+        const rect = event.currentTarget.getBoundingClientRect();
+        const origin = {
+            x: (rect.left + rect.right) / 2 / window.innerWidth,
+            y: (rect.top) / window.innerHeight
+        };
+
+        confetti({
+            particleCount: particleCount, spread: spread, origin: origin,
+            angle: 270, gravity: 0.5,
+            colors: ['#d4af37', '#ffffff', '#c0c0c0']
+        });
+    }
+});
+</script>
+
+</body>
+</html>
